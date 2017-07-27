@@ -26,8 +26,8 @@ export const putEvents = (options, cb) => {
 };
 
 export const deleteEvents = (options, cb) => {
-  const url = `/room${options}`;
-  asyncDelete(url, {}).then((result) => {
+  // const url = `/room${options}`;
+  asyncDelete('/room', options).then((result) => {
     if (result && cb) cb(result);
   });
 };

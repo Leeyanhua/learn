@@ -46,7 +46,7 @@ router.post('/', function(req, res, next) {
 //修改
 router.put('/', function(req, res, next) {
   const wherestr = {
-    title: req.body.title
+    start: req.body.start
   };
   const updatestr = {
     title : req.body.newTitle
@@ -68,9 +68,9 @@ router.put('/', function(req, res, next) {
 //删除
 router.delete('/', function(req, res, next) {
   const wherestr = {
-    title : req.body.title
+    start : req.body.start
   };
-
+  console.log(wherestr);
   Room.remove(wherestr, function(err, data){
     if (err) {
         console.log("Error:" + err);

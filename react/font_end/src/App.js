@@ -2,7 +2,7 @@ import React from 'react';
 import '../node_modules/react-big-calendar/lib/css/react-big-calendar.css';
 import BigCalendar from 'react-big-calendar';
 import moment from 'moment';
-import { Button, Modal, Input, message } from 'antd';
+import { Button, Modal, Input, message, Radio } from 'antd';
 import 'antd/dist/antd.css';
 import { postEvents, getEvents, putEvents, deleteEvents } from './Room';
 
@@ -49,7 +49,7 @@ class App extends React.Component {
 
   handleAddOk = (e) => {
 
-    if(this.state.title.length==0 || this.state.title==" "){
+    if(this.state.title.length===0 || this.state.title===" "){
       //alert("请输入事件名称！");
       this.setState({title_err: "请输入事件名称！"});
       return;
@@ -107,7 +107,6 @@ class App extends React.Component {
     const start = this.state.eventStart;
     const end = this.state.eventEnd;
     const events = this.state.events;
-
     const newEvents = events.map( item => {
       if(item.start === start && item.end === end){
         return {
@@ -124,12 +123,12 @@ class App extends React.Component {
       title: ""
     });
     putEvents({
-      title: "11",
+      start: start,
       newTitle: this.state.title
     }, (result) => {
-      console.log('post self info', );
+      console.log('post self info', start);
       if (result.code === 0) {
-
+        // console.log("成功");
       }
     });
   }
@@ -146,11 +145,10 @@ class App extends React.Component {
     const start = this.state.eventStart;
     const end = this.state.eventEnd;
     const events = this.state.events;
-    const title = this.state.inputTitle;
     const newEvents = events.map( item => {
       if(item.start === start && item.end === end){
         return {
-          title: this.state.title
+          start
         }
       }
       return item;
@@ -162,9 +160,9 @@ class App extends React.Component {
     });
 
     deleteEvents({
-      title: this.state.title
+      start: start
     }, (result) => {
-      console.log('post self info', result.msg);
+      // console.log('post self info', start);
       if (result.code === 0) {
       }
     });
@@ -218,6 +216,9 @@ class App extends React.Component {
                 inputTitle: e.target.value
               })
             }}/>
+            <br/>
+            <br/>
+            <Radio> 往后八周固定时间</Radio>
           </Modal>
           <Modal
             title="新增事件信息"
@@ -231,6 +232,9 @@ class App extends React.Component {
               })
             }}/>
             <label style={{color:"red"}}> {this.state.title_err} </label>
+            <br/>
+            <br/>
+            <Radio> 往后八周固定时间</Radio>
           </Modal>
         </div>
         <div {...this.props}>
@@ -263,20 +267,20 @@ class App extends React.Component {
                 slotStart: slotInfo.start,
                 slotEnd: slotInfo.end
               });
-              // for(let i=0; i< evts.length; i++){
-              //   if(slotInfo.start <= evts[i].start && slotInfo.end <= evts[i].start){
-              //     evts.push({
-              //       start: slotInfo.start,
-              //       end: slotInfo.end
-              //     });
-              //     this.setState({
-              //       events: evts,
-              //       addVisible: true,
-              //       slotStart: slotInfo.start,
-              //       slotEnd: slotInfo.end
-              //     });
-              //   }
-              // }
+              for(let i=0; i< evts.length; i++){
+                if(slotInfo.start <= evts[i].start && slotInfo.end <= evts[i].start){
+                  evts.push({
+                    start: slotInfo.start,
+                    end: slotInfo.end
+                  });
+                  this.setState({
+                    events: evts,
+                    addVisible: true,
+                    slotStart: slotInfo.start,
+                    slotEnd: slotInfo.end
+                  });
+                }
+              }
             }}
           />
         </div>
