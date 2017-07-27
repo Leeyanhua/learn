@@ -2,10 +2,9 @@ import React from 'react';
 import '../node_modules/react-big-calendar/lib/css/react-big-calendar.css';
 import BigCalendar from 'react-big-calendar';
 import moment from 'moment';
-import { Modal, Input, message } from 'antd';
+import { Button, Modal, Input, message } from 'antd';
 import 'antd/dist/antd.css';
-import { postEvents } from './Room';
-
+import { postEvents, getEvents, putEvents, deleteEvents } from './Room';
 
 BigCalendar.momentLocalizer(moment);
 
@@ -16,13 +15,48 @@ class App extends React.Component {
     this.state = {
       events: [],
       visible: true,
-      alertVisible: false
+      addVisible: false,
+      delVisible: false,
+      title: "",
+      title_err: "",
+      inputTitle: ""
     }
+  }
+  componentWillMount = () => {
+    getEvents(null, (result) => {
+      const events = result.data.map( item => {
+        return {
+          title: item.title,
+          start: new Date(item.start),
+          end:  new Date(item.end)
+        }
+      })
+      // console.log(events);
+      this.setState({ events });
+    });
   }
 
   handleOk = (e) => {
-    const start = this.state.yesStart;
-    const end = this.state.yesEnd;
+    this.setState({
+      visible: false,
+    });
+  }
+  handleCancle = (e) => {
+    this.setState({
+      visible: false,
+    });
+  }
+
+  handleAddOk = (e) => {
+
+    if(this.state.title.length==0 || this.state.title==" "){
+      //alert("请输入事件名称！");
+      this.setState({title_err: "请输入事件名称！"});
+      return;
+    }
+
+    const start = this.state.slotStart;
+    const end = this.state.slotEnd;
     const events = this.state.events;
     const newEvents = events.map( item => {
       if(item.start === start && item.end === end){
@@ -36,9 +70,8 @@ class App extends React.Component {
     });
     this.setState({
       events: newEvents,
-      alertVisible: false,
-      title: "",
-      visible: false,
+      addVisible: false,
+      title: ""
     });
     postEvents({
     	title: this.state.title,
@@ -46,17 +79,94 @@ class App extends React.Component {
       end:  end
     },(result) => {
       if (result.code===0) {
-        console.log("result", result);
+        // console.log("result", result);
         message.success("成功");
       }
     });
   }
-  handleCancle = (e) => {
-    console.log(e);
+  handleAddNo = (e) => {
+    const start = this.state.slotStart;
+    const end = this.state.slotEnd;
+    const events = this.state.events;
+    const newEvents = events.map( item => {
+      if(item.start === start && item.end === end){
+        return {
+        }
+      }
+      return item;
+    });
     this.setState({
-      alertVisible: false,
+      events: newEvents,
+      addVisible: false,
       title: "",
-      visible: false
+      title_err: ""
+    });
+  }
+
+  handleEdiOk = (e) => {
+    const start = this.state.eventStart;
+    const end = this.state.eventEnd;
+    const events = this.state.events;
+
+    const newEvents = events.map( item => {
+      if(item.start === start && item.end === end){
+        return {
+          start,
+          end,
+          title: this.state.title
+        }
+      }
+      return item;
+    });
+    this.setState({
+      delVisible: false,
+      events: newEvents,
+      title: ""
+    });
+    putEvents({
+      title: "11",
+      newTitle: this.state.title
+    }, (result) => {
+      console.log('post self info', );
+      if (result.code === 0) {
+
+      }
+    });
+  }
+
+  handleEdiNo = (e) => {
+    // console.log(e);
+    this.setState({
+      delVisible: false,
+      title: ""
+    });
+  }
+
+  handleDel = (e) => {
+    const start = this.state.eventStart;
+    const end = this.state.eventEnd;
+    const events = this.state.events;
+    const title = this.state.inputTitle;
+    const newEvents = events.map( item => {
+      if(item.start === start && item.end === end){
+        return {
+          title: this.state.title
+        }
+      }
+      return item;
+    });
+    this.setState({
+      events: newEvents,
+      delVisible: false,
+      title: ""
+    });
+
+    deleteEvents({
+      title: this.state.title
+    }, (result) => {
+      console.log('post self info', result.msg);
+      if (result.code === 0) {
+      }
     });
   }
 
@@ -95,15 +205,32 @@ class App extends React.Component {
           </Modal>
           <Modal
             title="编辑事件信息"
-            visible={this.state.alertVisible}
-            onOk={this.handleOk}
-            onCancel={this.handleCancle}
+            visible={this.state.delVisible}
+            onCancel={this.handleEdiNo}
+            footer={[
+              <Button key="delete" type="danger" style={{float:"left"}} size="large" onClick={this.handleDel}>删除</Button>,
+              <Button key="submit"  size="large"  onClick={this.handleEdiNo}>取消</Button>,
+              <Button key="cancel" type="primary" size="large"  onClick={this.handleEdiOk}>确认</Button>,
+            ]}>
+            <Input size="large" value={this.state.inputTitle} onChange={(e) => {
+              this.setState({
+                title: e.target.value,
+                inputTitle: e.target.value
+              })
+            }}/>
+          </Modal>
+          <Modal
+            title="新增事件信息"
+            visible={this.state.addVisible}
+            onOk={this.handleAddOk}
+            onCancel={this.handleAddNo}
           >
             <Input size="large" value={this.state.title} onChange={(e) => {
               this.setState({
                 title: e.target.value
               })
             }}/>
+            <label style={{color:"red"}}> {this.state.title_err} </label>
           </Modal>
         </div>
         <div {...this.props}>
@@ -112,14 +239,15 @@ class App extends React.Component {
             events={this.state.events}
             defaultView='week'
             scrollToTime={new Date(1970, 1, 1, 6)}
-            defaultDate={new Date(2017, 7, 25)}
+            defaultDate={new Date(2017, 7, 1)}
 
             onSelectEvent={(event) => {
-              // console.log(event);
+              console.log("event", event.title);
               this.setState({
-                alertVisible: true,
-                yesStart: event.start,
-                yesEnd: event.end
+                delVisible: true,
+                eventStart: event.start,
+                eventEnd: event.end,
+                inputTitle: event.title
               });
             }}
 
@@ -131,10 +259,24 @@ class App extends React.Component {
               });
               this.setState({
                 events: evts,
-                alertVisible: true,
-                yesStart: slotInfo.start,
-                yesEnd: slotInfo.end
+                addVisible: true,
+                slotStart: slotInfo.start,
+                slotEnd: slotInfo.end
               });
+              // for(let i=0; i< evts.length; i++){
+              //   if(slotInfo.start <= evts[i].start && slotInfo.end <= evts[i].start){
+              //     evts.push({
+              //       start: slotInfo.start,
+              //       end: slotInfo.end
+              //     });
+              //     this.setState({
+              //       events: evts,
+              //       addVisible: true,
+              //       slotStart: slotInfo.start,
+              //       slotEnd: slotInfo.end
+              //     });
+              //   }
+              // }
             }}
           />
         </div>
