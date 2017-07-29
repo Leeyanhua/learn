@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const Room = mongoose.model('Room');
+const async = require('async');
 
 //查询
 router.get('/', function(req, res, next) {
@@ -40,6 +41,19 @@ router.post('/', function(req, res, next) {
         data,
       });
     }
+  });
+});
+
+//新增
+router.post('/add-weeks', function(req, res, next) {
+  const arr = req.body.weeks;
+  console.log('add-weeks', arr);
+  Room.create(arr, (err, count) => {
+    if(err) console.log("Error:" + err);
+    console.log('create', count);
+    res.json({
+       code: 0
+    });
   });
 });
 

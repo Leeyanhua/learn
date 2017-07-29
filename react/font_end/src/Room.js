@@ -13,7 +13,7 @@ export const getEvents = (options, cb) => {
 };
 
 export const postEvents = (options, cb) => {
-  asyncPost('/room', options).then((result) => {
+  asyncPost('/room/add-weeks', options).then((result) => {
     // console.log('验证码', result);
     if (result && cb) cb(result);
   });

@@ -6,7 +6,12 @@ import { Button, Modal, Input, message, Radio } from 'antd';
 import 'antd/dist/antd.css';
 import { postEvents, getEvents, putEvents, deleteEvents } from './Room';
 
+
 BigCalendar.momentLocalizer(moment);
+
+// radio标志
+let radioFalg = false;
+let week8 = [];
 
 class App extends React.Component {
 
@@ -36,18 +41,18 @@ class App extends React.Component {
     });
   }
 
-  handleOk = (e) => {
+  handleOk = (e) => {                                  /*页面起始弹出框*/
     this.setState({
       visible: false,
     });
   }
-  handleCancle = (e) => {
+  handleCancle = (e) => {                              /*页面起始弹出框*/
     this.setState({
       visible: false,
     });
   }
 
-  handleAddOk = (e) => {
+  handleAddOk = (e) => {                             /*确认新增*/
 
     if(this.state.title.length===0 || this.state.title===" "){
       //alert("请输入事件名称！");
@@ -57,34 +62,46 @@ class App extends React.Component {
 
     const start = this.state.slotStart;
     const end = this.state.slotEnd;
-    const events = this.state.events;
-    const newEvents = events.map( item => {
-      if(item.start === start && item.end === end){
-        return {
-          start,
-          end,
-          title: this.state.title
-        }
+    let events = this.state.events;
+    events.pop();
+    let newEvents = [];
+    if (radioFalg) {
+      const st = start.getTime();
+      const en = end.getTime();
+      const ti = this.state.title;
+      for (let i=0; i<=7; i++) {                        //单选重复八周事件
+        newEvents.push({
+          start: new Date(st + 7 * 24 * 3600 * 1000*i),
+          end: new Date(en  + 7 * 24 * 3600 * 1000*i),
+          title: ti
+        })
       }
-      return item;
+    } else {
+      newEvents.push({
+        start,
+        end,
+        title: this.state.title
+      });
+    }
+    console.log('oldeEvents', events);
+    events = events.concat(newEvents);
+    console.log('neweEvents', events);
+
+    postEvents({
+      weeks: newEvents
+    }, (result) => {
+      if (result.code === 0) {
+        console.log("成功");
+      }
     });
+
     this.setState({
-      events: newEvents,
+      events,
       addVisible: false,
       title: ""
     });
-    postEvents({
-    	title: this.state.title,
-      start:  start,
-      end:  end
-    },(result) => {
-      if (result.code===0) {
-        // console.log("result", result);
-        message.success("成功");
-      }
-    });
   }
-  handleAddNo = (e) => {
+  handleAddNo = (e) => {                               /*取消新增*/
     const start = this.state.slotStart;
     const end = this.state.slotEnd;
     const events = this.state.events;
@@ -103,7 +120,7 @@ class App extends React.Component {
     });
   }
 
-  handleEdiOk = (e) => {
+  handleEdiOk = (e) => {                               /*确认修改*/
     const start = this.state.eventStart;
     const end = this.state.eventEnd;
     const events = this.state.events;
@@ -117,6 +134,7 @@ class App extends React.Component {
       }
       return item;
     });
+
     this.setState({
       delVisible: false,
       events: newEvents,
@@ -133,7 +151,7 @@ class App extends React.Component {
     });
   }
 
-  handleEdiNo = (e) => {
+  handleEdiNo = (e) => {                               /*取消修改*/
     // console.log(e);
     this.setState({
       delVisible: false,
@@ -141,7 +159,7 @@ class App extends React.Component {
     });
   }
 
-  handleDel = (e) => {
+  handleDel = (e) => {                                 /*删除事件*/
     const start = this.state.eventStart;
     const end = this.state.eventEnd;
     const events = this.state.events;
@@ -165,6 +183,51 @@ class App extends React.Component {
       // console.log('post self info', start);
       if (result.code === 0) {
       }
+    });
+  }
+
+  onChangeRadio = (e) => {
+    radioFalg = !radioFalg;
+  }
+
+  onChangeInput = (e) => {
+    this.setState({
+      title: e.target.value,
+      inputTitle: e.target.value
+    })
+  }
+
+  selectSlot = (slotInfo) => {         //框选事件
+    const evts = this.state.events;
+                                            //避免框选重复
+    for(let i=0; i< evts.length; i++){
+      if(slotInfo.end > evts[i].start && slotInfo.start < evts[i].end){
+        Modal.error({
+          title: '错误',
+          content: "时间端冲突"
+        });
+        return;
+      }
+    }
+    evts.push({
+      start: slotInfo.start,
+      end: slotInfo.end
+    });
+    this.setState({
+      events: evts,
+      addVisible: true,
+      slotStart: slotInfo.start,
+      slotEnd: slotInfo.end
+    });
+  }
+
+  selectEvent = (event) => {           //鼠标点击事件
+    console.log("event", event.title);
+    this.setState({
+      delVisible: true,
+      eventStart: event.start,
+      eventEnd: event.end,
+      inputTitle: event.title
     });
   }
 
@@ -210,15 +273,9 @@ class App extends React.Component {
               <Button key="submit"  size="large"  onClick={this.handleEdiNo}>取消</Button>,
               <Button key="cancel" type="primary" size="large"  onClick={this.handleEdiOk}>确认</Button>,
             ]}>
-            <Input size="large" value={this.state.inputTitle} onChange={(e) => {
-              this.setState({
-                title: e.target.value,
-                inputTitle: e.target.value
-              })
-            }}/>
+            <Input size="large" value={this.state.inputTitle} onChange={this.onChangeInput}/>
             <br/>
             <br/>
-            <Radio> 往后八周固定时间</Radio>
           </Modal>
           <Modal
             title="新增事件信息"
@@ -234,9 +291,12 @@ class App extends React.Component {
             <label style={{color:"red"}}> {this.state.title_err} </label>
             <br/>
             <br/>
-            <Radio> 往后八周固定时间</Radio>
+            <Radio  onChange={this.onChangeRadio}>
+            往后八周固定时间段
+            </Radio>
           </Modal>
         </div>
+
         <div {...this.props}>
           <BigCalendar
             selectable
@@ -245,43 +305,8 @@ class App extends React.Component {
             scrollToTime={new Date(1970, 1, 1, 6)}
             defaultDate={new Date(2017, 7, 1)}
 
-            onSelectEvent={(event) => {
-              console.log("event", event.title);
-              this.setState({
-                delVisible: true,
-                eventStart: event.start,
-                eventEnd: event.end,
-                inputTitle: event.title
-              });
-            }}
-
-            onSelectSlot={(slotInfo) => {
-              const evts = this.state.events;
-              evts.push({
-                start: slotInfo.start,
-                end: slotInfo.end
-              });
-              this.setState({
-                events: evts,
-                addVisible: true,
-                slotStart: slotInfo.start,
-                slotEnd: slotInfo.end
-              });
-              for(let i=0; i< evts.length; i++){
-                if(slotInfo.start <= evts[i].start && slotInfo.end <= evts[i].start){
-                  evts.push({
-                    start: slotInfo.start,
-                    end: slotInfo.end
-                  });
-                  this.setState({
-                    events: evts,
-                    addVisible: true,
-                    slotStart: slotInfo.start,
-                    slotEnd: slotInfo.end
-                  });
-                }
-              }
-            }}
+            onSelectEvent={this.selectEvent}
+            onSelectSlot={this.selectSlot}
           />
         </div>
       </div>
