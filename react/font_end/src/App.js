@@ -2,7 +2,7 @@ import React from 'react';
 import '../node_modules/react-big-calendar/lib/css/react-big-calendar.css';
 import BigCalendar from 'react-big-calendar';
 import moment from 'moment';
-import { Button, Modal, Input, message, Radio } from 'antd';
+import { Button, Modal, Input, Checkbox } from 'antd';
 import 'antd/dist/antd.css';
 import { postEvents, getEvents, putEvents, deleteEvents } from './Room';
 
@@ -10,8 +10,7 @@ import { postEvents, getEvents, putEvents, deleteEvents } from './Room';
 BigCalendar.momentLocalizer(moment);
 
 // radio标志
-let radioFalg = false;
-let week8 = [];
+let checkFalg = false;
 
 class App extends React.Component {
 
@@ -65,7 +64,7 @@ class App extends React.Component {
     let events = this.state.events;
     events.pop();
     let newEvents = [];
-    if (radioFalg) {
+    if (checkFalg) {
       const st = start.getTime();
       const en = end.getTime();
       const ti = this.state.title;
@@ -83,7 +82,7 @@ class App extends React.Component {
         title: this.state.title
       });
     }
-    console.log('oldeEvents', events);
+
     events = events.concat(newEvents);
     console.log('neweEvents', events);
 
@@ -186,14 +185,20 @@ class App extends React.Component {
     });
   }
 
-  onChangeRadio = (e) => {
-    radioFalg = !radioFalg;
-  }
+  onChangeCheck = (e) => {
+    checkFalg = true;
 
+  }
   onChangeInput = (e) => {
     this.setState({
       title: e.target.value,
       inputTitle: e.target.value
+    })
+  }
+
+  onChangeAdd = (e) => {
+    this.setState({
+      title: e.target.value
     })
   }
 
@@ -203,8 +208,8 @@ class App extends React.Component {
     for(let i=0; i< evts.length; i++){
       if(slotInfo.end > evts[i].start && slotInfo.start < evts[i].end){
         Modal.error({
-          title: '错误',
-          content: "时间端冲突"
+          title: '提示',
+          content: "该时间段已有会议安排"
         });
         return;
       }
@@ -283,17 +288,13 @@ class App extends React.Component {
             onOk={this.handleAddOk}
             onCancel={this.handleAddNo}
           >
-            <Input size="large" value={this.state.title} onChange={(e) => {
-              this.setState({
-                title: e.target.value
-              })
-            }}/>
+            <Input size="large" value={this.state.title} onChange={this.onChangeAdd}/>
             <label style={{color:"red"}}> {this.state.title_err} </label>
             <br/>
             <br/>
-            <Radio  onChange={this.onChangeRadio}>
-            往后八周固定时间段
-            </Radio>
+            <Checkbox  onChange={this.onChangeCheck}>
+            后八周重复此时间
+            </Checkbox>
           </Modal>
         </div>
 
