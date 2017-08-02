@@ -19,6 +19,13 @@ export const postEvents = (options, cb) => {
   });
 };
 
+export const postVerify = (options, cb) => {
+  asyncPost('/room/Verify', options).then((result) => {
+    // console.log('验证码', result);
+    if (result && cb) cb(result);
+  });
+};
+
 export const putEvents = (options, cb) => {
   asyncPut('/room', options).then((result) => {
     if (result && cb) cb(result);

@@ -16,8 +16,8 @@ async function getUrl(url, cookie) {
 }
 
 async function postUrl(url, value) {
-  console.log(`[POST URL]: ${url}`);
-  console.log('[POST DATA]:', value);
+  // console.log(`[POST URL]: ${url}`);
+  // console.log('[POST DATA]:', value);
   try {
     const response = await fetch(url, {
       credentials: 'include', // 携带 cookie
@@ -84,14 +84,7 @@ export const asyncGet = (url) => {
 };
 export const asyncPost = (url, value) => {
   return postUrl(url, value).then(result => {
-    console.log('result', result);
-    if (result.code && result.code > 0) {
-      const msg = result.msg || '发送信息失败！'
-      message.error(msg, 2)
-      // return false;
-    } else {
-      return result
-    }
+    return result;
   })
 };
 
@@ -102,7 +95,7 @@ export const asyncPut = (url, value) => {
       message.error(msg, 2)
       // return false;
     } else {
-      console.log('修改信息成功！', url, value);
+      // console.log('修改信息成功！', url, value);
       return result
     }
   })

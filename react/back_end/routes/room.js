@@ -44,6 +44,19 @@ router.post('/', function(req, res, next) {
   });
 });
 
+//密码验证
+router.post('/verify', function (req, res, next) {
+  const pwd = req.body.pwd;
+  // console.log('verify', pwd);
+  if(pwd === "123456"){
+    res.json({
+       code: 0
+   });
+  } else {
+    res.json({ code: 1 });
+  }
+});
+
 //新增
 router.post('/add-weeks', function(req, res, next) {
   const arr = req.body.weeks;

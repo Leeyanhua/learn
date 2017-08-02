@@ -4,7 +4,7 @@ import BigCalendar from 'react-big-calendar';
 import moment from 'moment';
 import { Button, Modal, Input, Checkbox } from 'antd';
 import 'antd/dist/antd.css';
-import { postEvents, getEvents, putEvents, deleteEvents } from './Room';
+import { postEvents, postVerify, getEvents, putEvents, deleteEvents } from './Room';
 
 
 BigCalendar.momentLocalizer(moment);
@@ -19,8 +19,10 @@ class App extends React.Component {
     this.state = {
       events: [],
       visible: true,
+      confirm_password: "",
       addVisible: false,
       delVisible: false,
+      loginVisible: false,
       title: "",
       title_err: "",
       inputTitle: ""
@@ -45,9 +47,65 @@ class App extends React.Component {
       visible: false,
     });
   }
-  handleCancle = (e) => {                              /*页面起始弹出框*/
+  handleCancel = (e) => {                              /*页面起始弹出框*/
     this.setState({
       visible: false,
+    });
+  }
+
+  handleLoginOk = (e) => {
+    if(this.state.title.length===0 || this.state.title===" ") {
+      this.setState({title_err: "密码不能为空！"});
+      return;
+    }
+    const start = this.state.slotStart;
+    const end = this.state.slotEnd;
+    const events = this.state.events;
+    const newEvents = events.map( item => {
+      if(item.start === start && item.end === end){
+        return {
+        }
+      }
+      return item;
+    });
+    const pwd = this.state.title;
+    postVerify({
+      pwd: pwd
+    }, (result) => {
+      if (result.code === 0) {
+        // console.log("成功");
+        this.setState({
+          events: newEvents,
+          loginVisible: false,
+          title: "",
+          title_err: ""
+        });
+      } else {
+        // console.log("失败");
+        this.setState({
+          title_err: "密码错误，请重新输入！"
+        });
+      }
+    });
+  }
+
+  handleLoginNo = (e) => {                              /*页面起始弹出框*/
+    const start = this.state.slotStart;
+    const end = this.state.slotEnd;
+    const events = this.state.events;
+    const newEvents = events.map( item => {
+      if(item.start === start && item.end === end){
+        return {
+        }
+      }
+      return item;
+    });
+    this.setState({
+      events: newEvents,
+      loginVisible: false,
+      title: "",
+      title_err: "",
+      confirm_password: ""
     });
   }
 
@@ -84,13 +142,13 @@ class App extends React.Component {
     }
 
     events = events.concat(newEvents);
-    console.log('neweEvents', events);
+    // console.log('neweEvents', events);
 
     postEvents({
       weeks: newEvents
     }, (result) => {
       if (result.code === 0) {
-        console.log("成功");
+        // console.log("成功");
       }
     });
 
@@ -143,7 +201,7 @@ class App extends React.Component {
       start: start,
       newTitle: this.state.title
     }, (result) => {
-      console.log('post self info', start);
+      // console.log('post self info', start);
       if (result.code === 0) {
         // console.log("成功");
       }
@@ -186,7 +244,7 @@ class App extends React.Component {
   }
 
   onChangeCheck = (e) => {
-    checkFalg = true;
+    checkFalg = !checkFalg;
 
   }
   onChangeInput = (e) => {
@@ -202,7 +260,13 @@ class App extends React.Component {
     })
   }
 
-  selectSlot = (slotInfo) => {         //框选事件
+  onChangeLogin = (e) => {
+    this.setState({
+      title: e.target.value
+    })
+  }
+
+  selectSlot = (slotInfo) => {              //框选事件
     const evts = this.state.events;
                                             //避免框选重复
     for(let i=0; i< evts.length; i++){
@@ -214,26 +278,50 @@ class App extends React.Component {
         return;
       }
     }
-    evts.push({
-      start: slotInfo.start,
-      end: slotInfo.end
-    });
-    this.setState({
-      events: evts,
-      addVisible: true,
-      slotStart: slotInfo.start,
-      slotEnd: slotInfo.end
-    });
+    
+    if (this.state.confirm_password !== "") {
+      if (slotInfo.start > new Date()) {
+        evts.push({
+          start: slotInfo.start,
+          end: slotInfo.end
+        });
+        this.setState({
+          events: evts,
+          addVisible: true,
+          slotStart: slotInfo.start,
+          slotEnd: slotInfo.end
+        });
+      }
+    } else {
+      this.setState({
+        events: evts,
+        loginVisible: true,
+        slotStart: slotInfo.start,
+        slotEnd: slotInfo.end,
+        confirm_password: 1
+      });
+    }
   }
 
   selectEvent = (event) => {           //鼠标点击事件
-    console.log("event", event.title);
-    this.setState({
-      delVisible: true,
-      eventStart: event.start,
-      eventEnd: event.end,
-      inputTitle: event.title
-    });
+    if (this.state.confirm_password !== "") {
+      if (event.start > new Date()) {
+        this.setState({
+          delVisible: true,
+          eventStart: event.start,
+          eventEnd: event.end,
+          inputTitle: event.title
+        });
+      }
+    } else {
+      this.setState({
+        loginVisible: true,
+        eventStart: event.start,
+        eventEnd: event.end,
+        inputTitle: event.title,
+        confirm_password: 1
+      });
+    }
   }
 
   render() {
@@ -244,7 +332,7 @@ class App extends React.Component {
            title="单击以编辑事件信息，或将鼠标拖动到日历上以选择日期/时间范围。"
            visible={this.state.visible}
            onOk={this.handleOk}
-           onCancel={this.handleCancle}
+           onCancel={this.handleCancel}
          >
            <h3>
              &nbsp;&nbsp;
@@ -269,6 +357,32 @@ class App extends React.Component {
              本规则从7月30日开始执行，实验室对接人为：张旻驰(18694063428)。
            </h3>
           </Modal>
+
+          <Modal
+            title="请输入管理员密码"
+            visible={this.state.loginVisible}
+            onOk={this.handleLoginOk}
+            onCancel={this.handleLoginNo}
+          >
+          <Input size="large" value={this.state.title} type="password" onChange={this.onChangeLogin} />
+          <label style={{color:"red"}}> {this.state.title_err} </label>
+          </Modal>
+
+          <Modal
+            title="新增事件信息"
+            visible={this.state.addVisible}
+            onOk={this.handleAddOk}
+            onCancel={this.handleAddNo}
+          >
+            <Input size="large" value={this.state.title} onChange={this.onChangeAdd}/>
+            <label style={{color:"red"}}> {this.state.title_err} </label>
+            <br/>
+            <br/>
+            <Checkbox  onChange={this.onChangeCheck}>
+            后八周重复此事件
+            </Checkbox>
+          </Modal>
+
           <Modal
             title="编辑事件信息"
             visible={this.state.delVisible}
@@ -281,20 +395,6 @@ class App extends React.Component {
             <Input size="large" value={this.state.inputTitle} onChange={this.onChangeInput}/>
             <br/>
             <br/>
-          </Modal>
-          <Modal
-            title="新增事件信息"
-            visible={this.state.addVisible}
-            onOk={this.handleAddOk}
-            onCancel={this.handleAddNo}
-          >
-            <Input size="large" value={this.state.title} onChange={this.onChangeAdd}/>
-            <label style={{color:"red"}}> {this.state.title_err} </label>
-            <br/>
-            <br/>
-            <Checkbox  onChange={this.onChangeCheck}>
-            后八周重复此时间
-            </Checkbox>
           </Modal>
         </div>
 
